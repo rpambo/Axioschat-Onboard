@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 interface ApiKeys {
   openai: string
   replicate: string
-  gemini: string
+  aimlapi: string
   sensay: string
 }
 
@@ -11,7 +11,7 @@ export default function useApiKeys() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({
     openai: "",
     replicate: "",
-    gemini: "",
+    aimlapi: "",
     sensay: ""
   })
   const [isLoaded, setIsLoaded] = useState(false)
@@ -25,7 +25,7 @@ export default function useApiKeys() {
         setApiKeys({
           openai: parsedKeys.openai || "",
           replicate: parsedKeys.replicate || "",
-          gemini: parsedKeys.gemini || "",
+          aimlapi: parsedKeys.aimlapi || parsedKeys.gemini || "", // Support migration from gemini
           sensay: parsedKeys.sensay || ""
         })
       }

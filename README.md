@@ -59,9 +59,9 @@
 ### 🧠 AI Strategy
 
 * **Primary Model - Sensay AI Network**: Leverages the Sensay AI Network as a blockchain-specialized knowledge engine, delivering chat-based Q&A, replica management, and on-chain insights via its `/v1/replicas/{replicaUUID}/chat/completions` and experimental `/v1/experimental/replicas/{replicaUUID}/chat/completions` endpoints.
-* **Fallback Model - Gemini**: If a Sensay API key isn't provided or you toggle off Sensay in the UI, the app automatically falls back to Gemini's conversational LLM (`gemini-2.0-flash`) for general-purpose dialogue.
-* **Model Switching**: Use the Model Settings panel in the chat UI to switch between Sensay and Gemini at runtime when multiple keys are available.
-* **Customizable API Keys**: Configure both `VITE_SENSAY_API_KEY` and `VITE_GEMINI_API_KEY` in your `.env`; the app reads Sensay first then falls back to Gemini.
+* **Fallback Model - AIML API**: If a Sensay API key isn't provided or you toggle off Sensay in the UI, the app automatically falls back to AIML API's conversational LLM (`gpt-4o`) for general-purpose dialogue.
+* **Model Switching**: Use the Model Settings panel in the chat UI to switch between Sensay and AIML API at runtime when multiple keys are available.
+* **Customizable API Keys**: Configure both `VITE_SENSAY_API_KEY` and `VITE_AIMLAPI_KEY` in your `.env`; the app reads Sensay first then falls back to AIML API.
 
 ## 🏆 Why AxiosChat Stands Out
 
@@ -100,8 +100,8 @@ AxiosChat isn't just another chatbot. It's a **thoughtfully engineered solution*
 
 AxiosChat employs a sophisticated dual-model AI architecture:
 
-1. **Conversational LLM (Configurable: Sensay, Gemini)**: Manages the primary user interaction, understands intent, and determines if a Web3-specific action is required.
-2. **Specialized Web3 AI Model (Gemini)**: If a Web3 action is needed, this model interprets the request to identify the precise blockchain function and its parameters.
+1. **Conversational LLM (Configurable: Sensay, AIML API)**: Manages the primary user interaction, understands intent, and determines if a Web3-specific action is required.
+2. **Specialized Web3 AI Model (AIML API)**: If a Web3 action is needed, this model interprets the request to identify the precise blockchain function and its parameters.
 
 This system intelligently differentiates between:
 * **Read-only operations** (e.g., checking a token balance), which can be executed quickly.
@@ -150,7 +150,7 @@ graph TD;
     </tr>
     <tr>
       <td>AI Integration</td>
-      <td>Custom service layer for interacting with LLMs (OpenAI, Sensay) and specialized Web3 models (Gemini)</td>
+      <td>Custom service layer for interacting with LLMs (OpenAI, Sensay) and specialized Web3 models (AIML API)</td>
     </tr>
     <tr>
       <td>UI Enhancements</td>
@@ -178,13 +178,13 @@ graph TD;
    *This will install all required packages including UI enhancements like `framer-motion`, `react-syntax-highlighter`, and `date-fns`.*
 
 3. **Configure Environment Variables**:
-   Create a `.env` file in the root directory and populate it with your Sensay and Gemini API keys:
+   Create a `.env` file in the root directory and populate it with your Sensay and AIML API keys:
    ```env
    VITE_SENSAY_API_KEY=your_sensay_api_key
-   VITE_GEMINI_API_KEY=your_gemini_api_key
+   VITE_AIMLAPI_KEY=your_aimlapi_key
    ```
    - **Sensay (default)**: used for specialized blockchain Q&A via Sensay AI Network.
-   - **Gemini (fallback)**: used if Sensay key is missing or toggled off in the UI.
+   - **AIML API (fallback)**: used if Sensay key is missing or toggled off in the UI.
    After updating the `.env`, restart the development server.
 
 4. **Run the Development Server**:
@@ -208,7 +208,7 @@ graph TD;
    ```bash
    python api/replicate_py.py
    ```
-   *The backend uses Gemini for function calling, returning responses through the frontend's selected model (Sensay/Gemini) based on user configuration.*
+   *The backend uses AIML API for function calling, returning responses through the frontend's selected model (Sensay/AIML API) based on user configuration.*
 
 ## 🔮 Future Roadmap & Vision
 

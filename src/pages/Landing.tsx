@@ -415,7 +415,7 @@ const StepCard = ({
       <div className="text-xs text-center text-muted-foreground">
         {number === "1" && "Ask directly on the landing page"}
         {number === "2" && "Uses secure Web3 protocols"}
-        {number === "3" && "Powered by Gemini AI"}
+        {number === "3" && "Powered by AIML API"}
       </div>
     </div>
   </div>

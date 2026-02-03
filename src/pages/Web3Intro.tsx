@@ -636,9 +636,9 @@ Use this context to answer any user questions about Sensay or Cyberscope compreh
             aiResponse = `I couldn't connect to the local model. ${error instanceof Error ? error.message : "Unknown error"}`
           }
         } else {
-          // Gemini path (backend will use env API key)
+          // AIML API path (backend will use env API key)
           {
-            // Prepare messages for Gemini
+            // Prepare messages for AIML API
             const conversationalMessages: ChatMessage[] = messages
               .filter((m) => m.role !== "function") // Filter out function messages for the initial query
               .map((m) => ({
@@ -661,9 +661,9 @@ Use this context to answer any user questions about Sensay or Cyberscope compreh
                 `\n\nIf you need to call a Web3 function, include [FUNCTION_CALL:function_name] in your response. Available functions: get_token_balance, get_token_price, get_gas_price, send_token, swap_tokens, add_liquidity, explain_transaction, estimate_gas.`,
             })
 
-            // Call Gemini
+            // Call AIML API
             aiResponse = await callOpenAI({
-              model: "gemini-3-flash-preview",
+              model: "gpt-4o",
               messages: conversationalMessages,
               temperature: 0.7,
               top_p: 0.9,

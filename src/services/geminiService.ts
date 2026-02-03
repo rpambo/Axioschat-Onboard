@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/use-toast"
 
-export interface GeminiFunctionRequest {
+export interface AIMLFunctionRequest {
   query: string
   tools: string
   top_p?: number
@@ -8,48 +8,48 @@ export interface GeminiFunctionRequest {
   max_output_tokens?: number
 }
 
-// Get Gemini API token from localStorage
-const getGeminiApiToken = (): string => {
+// Get AIML API token from localStorage
+const getAIMLApiToken = (): string => {
   let token = ""
   try {
     const apiKeys = localStorage.getItem("apiKeys")
     if (apiKeys) {
       const parsed = JSON.parse(apiKeys)
-      if (parsed.gemini) token = parsed.gemini
+      if (parsed.aimlapi) token = parsed.aimlapi
     }
   } catch (error) {
-    console.error("Error retrieving Gemini API token from localStorage:", error)
+    console.error("Error retrieving AIML API token from localStorage:", error)
   }
   // Fallback to environment variables if not found in localStorage (for dev convenience)
   if (!token) {
-    token = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
-    if (token) console.log("Using Gemini API key from environment variable")
+    token = import.meta.env.VITE_AIMLAPI_KEY || import.meta.env.NEXT_PUBLIC_AIMLAPI_KEY || ""
+    if (token) console.log("Using AIML API key from environment variable")
   }
   return token
 }
 
-// Call Gemini model for function calling with retry mechanism for stability
-export const callGeminiForFunctions = async (
-  input: GeminiFunctionRequest,
+// Call AIML model for function calling with retry mechanism for stability
+export const callAIMLForFunctions = async (
+  input: AIMLFunctionRequest,
 ): Promise<string | { text?: string; error?: string; functionCalls?: any[] }> => {
   try {
-    const GEMINI_API_KEY = getGeminiApiToken()
-    // Note: proceed even if no GEMINI_API_KEY to allow backend to handle defaults
+    const AIMLAPI_KEY = getAIMLApiToken()
+    // Note: proceed even if no AIMLAPI_KEY to allow backend to handle defaults
 
-    console.log("Calling Gemini API with input:", {
+    console.log("Calling AIML API with input:", {
       query: input.query.substring(0, 50) + "...",
       temperature: input.temperature,
       top_p: input.top_p,
     })
 
-    // Format the request body for Gemini's API 
+    // Format the request body for AIML's API 
     const requestBody = {
       query: input.query,
-      tools: input.tools, // Same tools JSON string format as used with Replicate
+      tools: input.tools, // Same tools JSON string format
       top_p: input.top_p || 0.9,
       temperature: input.temperature || 0.7,
       max_output_tokens: input.max_output_tokens || 3000,
-      model: "gemini-3-flash-preview" // main branch default for function calling
+      model: "gpt-4o" // Default model for function calling
     }
 
     console.log("Request body:", JSON.stringify(requestBody, null, 2))
@@ -60,7 +60,7 @@ export const callGeminiForFunctions = async (
     let responseData
 
     // Call a relative path; Vercel will rewrite this to the deployed Render backend
-    const apiUrl = "/api/gemini_functions"
+    const apiUrl = "/api/aiml_functions"
 
     // Retry loop for stability
     while (retryCount <= maxRetries) {
@@ -71,8 +71,8 @@ export const callGeminiForFunctions = async (
         const headers: HeadersInit = {
           "Content-Type": "application/json",
         }
-        if (GEMINI_API_KEY) {
-          headers["X-Gemini-API-Key"] = GEMINI_API_KEY
+        if (AIMLAPI_KEY) {
+          headers["X-AIMLAPI-Key"] = AIMLAPI_KEY
         }
 
         const response = await fetch(apiUrl, {
@@ -83,7 +83,7 @@ export const callGeminiForFunctions = async (
         })
         clearTimeout(timeoutId)
         if (!response.ok) {
-          let errorMessage = `Gemini API Error (${response.status}): `
+          let errorMessage = `AIML API Error (${response.status}): `
           try {
             const data = await response.json()
             errorMessage += data.error || JSON.stringify(data)
@@ -106,11 +106,11 @@ export const callGeminiForFunctions = async (
     }
 
     if (!responseData) {
-      return { error: "No response from Gemini endpoint" }
+      return { error: "No response from AIML endpoint" }
     }
     
     if (responseData.error) {
-      console.error("Error from Gemini API:", responseData.error)
+      console.error("Error from AIML API:", responseData.error)
       return { error: responseData.error }
     }
     
@@ -119,9 +119,9 @@ export const callGeminiForFunctions = async (
       return { text: responseData.output || "I couldn't process your request properly. Please try rephrasing your question." }
     }
 
-    // Handle the output from the Gemini API
+    // Handle the output from the AIML API
     if (responseData.output) {
-      console.log("Complete output from Gemini:", responseData.output)
+      console.log("Complete output from AIML:", responseData.output)
 
       // If the output is a plain text response, return it
       if (typeof responseData.output === "string") {
@@ -151,7 +151,7 @@ export const callGeminiForFunctions = async (
       text: "The model did not return a valid response. This may indicate an issue with the API or the model configuration.",
     }
   } catch (error) {
-    console.error("Error calling Gemini Functions model via proxy:", error)
+    console.error("Error calling AIML Functions model via proxy:", error)
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while calling the AI model"
 
@@ -164,6 +164,9 @@ export const callGeminiForFunctions = async (
     return { error: `Error: ${errorMessage}` }
   }
 }
+
+// Backward compatibility: export with old name
+export const callGeminiForFunctions = callAIMLForFunctions;
 
 // We can reuse the same tools JSON definition from replicateProxyService.ts
 // This is exported from there and imported where needed 
