@@ -45,7 +45,7 @@ const Chat = () => {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [functionCalls, setFunctionCalls] = useState<FunctionCall[]>([])
-  // Gemini-only mode; no Sensay or local Llama selection
+  // AIML API mode; no Sensay or local Llama selection
   const [useOpenAI, setUseOpenAI] = useState(true)
   const [useSensay, setUseSensay] = useState(false)
   const [activeChat, setActiveChat] = useState<number | null>(null)
@@ -182,20 +182,20 @@ DO NOT make up any blockchain data. ONLY identify if a function call is needed.`
       let detectionResponse: string | undefined;
 
       if (useSensay) {
-        // For Sensay model, use Gemini for function detection first
+        // For Sensay model, use AIML API for function detection first
         try {
           detectionResponse = await callOpenAI(
             {
-              model: "gemini-3-flash-preview",
+              model: "gpt-4o",
               messages: conversationalMessages,
               temperature: 0.7,
               top_p: 0.9,
               max_tokens: 2000,
             },
-            false // useSensay false for Gemini detection
+            false // useSensay false for AIML detection
           );
         } catch (error) {
-          console.error("Error calling Gemini for function detection:", error);
+          console.error("Error calling AIML API for function detection:", error);
           detectionResponse = "Sorry, I'm having trouble connecting to the AI service. Please try again in a moment.";
         }
         // Use detection response initially
@@ -224,10 +224,10 @@ DO NOT make up any blockchain data. ONLY identify if a function call is needed.`
           }
         }
       } else if (useOpenAI) {
-          // Use Gemini directly; backend holds the key
+          // Use AIML API directly; backend holds the key
           try {
             llamaResponse = await callOpenAI({
-              model: "gemini-3-flash-preview",
+              model: "gpt-4o",
               messages: conversationalMessages,
               temperature: 0.7,
               top_p: 0.9,
@@ -393,7 +393,7 @@ Be concise and direct. Don't just repeat the raw data - explain its significance
 
                 if (useOpenAI) {
                   interpretationResponse = await callOpenAI({
-                    model: "gemini-3-flash-preview",
+                    model: "gpt-4o",
                     messages: interpretationMessages,
                     temperature: 0.7,
                     top_p: 0.9,
@@ -651,7 +651,7 @@ Please explain what this result means for the user in a concise and helpful way.
 
                 if (useOpenAI) {
                   interpretationResponse = await callOpenAI({
-                    model: "gemini-3-flash-preview",
+                    model: "gpt-4o",
                     messages: interpretationMessages,
                     temperature: 0.7,
                     top_p: 0.9,
@@ -956,7 +956,7 @@ Please explain what this result means for the user in a concise and helpful way.
               </div>
               <div className="border-t p-4 md:p-5 flex-shrink-0 bg-white dark:bg-gray-800 rounded-b-xl shadow-inner relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-gray-700 dark:to-gray-800 opacity-20 pointer-events-none"></div>
-                {/* Model selection removed: Gemini-only */}
+                {/* Model selection removed: AIML API only */}
                 <ErrorBoundary>
                   <form onSubmit={(e) => { e.preventDefault(); if (input.trim()) handleSubmit(e); }} className="flex items-center space-x-3 relative z-10">
                     <Input

@@ -27,7 +27,7 @@ export type LlamaOptions = {
 }
 
 export type OpenAIOptions = {
-  model: string  // Now refers to Gemini model
+  model: string  // Now refers to AIML API model
   messages: ChatMessage[]
   temperature?: number
   top_p?: number
@@ -44,7 +44,7 @@ export interface LlamaRequest {
 
 export interface OpenAIRequest {
   messages: ChatMessage[]
-  model: string  // Now refers to Gemini model
+  model: string  // Now refers to AIML API model
   temperature?: number
   top_p?: number
   max_tokens?: number
@@ -60,13 +60,13 @@ export interface FlockWeb3Request {
 }
 
 // Get API tokens from localStorage
-const getApiTokens = (): { gemini: string; openai: string; replicate: string; sensay: string } => {
+const getApiTokens = (): { aimlapi: string; openai: string; replicate: string; sensay: string } => {
   try {
     const apiKeys = localStorage.getItem("apiKeys")
     if (apiKeys) {
       const parsed = JSON.parse(apiKeys)
       return {
-        gemini: parsed.gemini || parsed.openai || "", // Check for both gemini and openai keys
+        aimlapi: parsed.aimlapi || parsed.openai || "", // Check for both aimlapi and openai keys
         openai: parsed.openai || "",
         replicate: parsed.replicate || "",
         sensay: parsed.sensay || "", // Add Sensay API key
@@ -75,10 +75,10 @@ const getApiTokens = (): { gemini: string; openai: string; replicate: string; se
   } catch (error) {
     console.error("Error retrieving API tokens:", error)
   }
-  return { gemini: "", openai: "", replicate: "", sensay: "" }
+  return { aimlapi: "", openai: "", replicate: "", sensay: "" }
 }
 
-// Call Llama model (now using Gemini in production)
+// Call Llama model (now using AIML API in production)
 export async function callLlama(options: LlamaOptions, endpoint: string, useSensay: boolean = false): Promise<string> {
   try {
     // Check if we're in production (Vercel) or development
@@ -95,16 +95,16 @@ export async function callLlama(options: LlamaOptions, endpoint: string, useSens
       // Use Sensay for completions
       return await callSensayWithContext(options.messages)
     } else if (isProduction) {
-      // In production, use Gemini API via the OpenAI compatibility layer
-      const { gemini: GEMINI_API_KEY } = getApiTokens()
+      // In production, use AIML API via the OpenAI compatibility layer
+      const { aimlapi: AIMLAPI_KEY } = getApiTokens()
 
-      if (!GEMINI_API_KEY) {
-        return "Please provide a Gemini API key in the settings to use the chatbot."
+      if (!AIMLAPI_KEY) {
+        return "Please provide an AIML API key in the settings to use the chatbot."
       }
 
-      // Call OpenAI function which now uses Gemini API
+      // Call OpenAI function which now uses AIML API
       return await callOpenAI({
-        model: "gemini-2.5-flash",
+        model: "gpt-4o",
         messages: options.messages,
         temperature: options.temperature,
         top_p: options.top_p,
@@ -147,7 +147,7 @@ export async function callLlama(options: LlamaOptions, endpoint: string, useSens
   }
 }
 
-// Call OpenAI model (now using Gemini via server proxy)
+// Call OpenAI model (now using AIML API via server proxy)
 export async function callOpenAI(options: OpenAIOptions, useSensay: boolean = false): Promise<string> {
   // If Sensay is selected as the model, use it
   if (useSensay) {
@@ -161,7 +161,7 @@ export async function callOpenAI(options: OpenAIOptions, useSensay: boolean = fa
   }
   
   try {
-    const { gemini: GEMINI_API_KEY } = getApiTokens();
+    const { aimlapi: AIMLAPI_KEY } = getApiTokens();
     // If no key in localStorage, allow proxies to supply from server env
 
     // Convert our message format to OpenAI SDK format
@@ -181,84 +181,84 @@ export async function callOpenAI(options: OpenAIOptions, useSensay: boolean = fa
 
     // Create request body
     const requestBody = {
-      model: "gemini-3-flash-preview",
+      model: "gpt-4o",
       messages: formattedMessages,
       temperature: options.temperature || 0.7,
       max_tokens: options.max_tokens || 2000,
     };
 
-    console.log("Calling Gemini API via proxy with key:", GEMINI_API_KEY ? "API key exists" : "No API key");
+    console.log("Calling AIML API via proxy with key:", AIMLAPI_KEY ? "API key exists" : "No API key");
 
     // Use both proxy endpoints with fallback
     try {
-      // First try with proxy-gemini endpoint
+      // First try with proxy-gemini endpoint (now using AIML)
       const response = await fetch("/api/proxy-gemini", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(GEMINI_API_KEY ? { "X-Gemini-API-Key": GEMINI_API_KEY } : {}),
+          ...(AIMLAPI_KEY ? { "X-AIMLAPI-Key": AIMLAPI_KEY } : {}),
         },
         body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to call proxy-gemini: ${errorText}`);
+        throw new Error(`Failed to call proxy-aiml: ${errorText}`);
       }
 
       const data = await response.json();
       if (data.choices && data.choices.length > 0 && data.choices[0].message) {
         return data.choices[0].message.content || "";
       } else {
-        throw new Error("Invalid response format from proxy-gemini");
+        throw new Error("Invalid response format from proxy-aiml");
       }
     } catch (proxyError) {
-      console.warn("proxy-gemini failed, trying gemini-proxy:", proxyError);
+      console.warn("proxy-aiml failed, trying alternative endpoint:", proxyError);
       
-      // Try with alternative gemini-proxy endpoint
+      // Try with alternative gemini-proxy endpoint (now using AIML)
       const altResponse = await fetch("/api/gemini-proxy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(GEMINI_API_KEY ? { "X-Gemini-API-Key": GEMINI_API_KEY } : {}),
+          ...(AIMLAPI_KEY ? { "X-AIMLAPI-Key": AIMLAPI_KEY } : {}),
         },
         body: JSON.stringify(requestBody)
       });
 
       if (!altResponse.ok) {
         const errorText = await altResponse.text();
-        throw new Error(`Failed to call gemini-proxy: ${errorText}`);
+        throw new Error(`Failed to call alternative aiml-proxy: ${errorText}`);
       }
 
       const altData = await altResponse.json();
       if (altData.choices && altData.choices.length > 0 && altData.choices[0].message) {
         return altData.choices[0].message.content || "";
       } else {
-        throw new Error("Invalid response format from gemini-proxy");
+        throw new Error("Invalid response format from alternative aiml-proxy");
       }
     }
   } catch (error) {
-    console.error("Error calling OpenAI:", error);
+    console.error("Error calling AIML API:", error);
     return `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
   }
 }
 
-// Call FlockWeb3 model - now updated to use Gemini for function calling
+// Call FlockWeb3 model - now updated to use AIML API for function calling
 export const callFlockWeb3 = async (
   input: FlockWeb3Request,
 ): Promise<{ text?: string; error?: string; functionCalls?: FunctionCall[] } | string> => {
   try {
     // API key check is removed here; backend (Render) is responsible for using its env var.
 
-    console.log("Calling Gemini Functions API (via callFlockWeb3) with input:", {
+    console.log("Calling AIML Functions API (via callFlockWeb3) with input:", {
       query: input.query.substring(0, 50) + "...",
       temperature: input.temperature,
       top_p: input.top_p,
     })
 
-    // Call the Gemini function calling service with the same input structure
-    // Note: Using Gemini 2.0 Flash model as specified by the user
-    const geminiResponse = await callGeminiForFunctions({
+    // Call the AIML function calling service with the same input structure
+    // Note: Using gpt-4o model as specified
+    const aimlResponse = await callGeminiForFunctions({
       query: input.query,
       tools: input.tools,
       top_p: input.top_p,
@@ -266,27 +266,27 @@ export const callFlockWeb3 = async (
       max_output_tokens: input.max_new_tokens,
     })
 
-    // Process the output from Gemini
-    if (typeof geminiResponse === 'string') {
-      return { text: geminiResponse }
+    // Process the output from AIML API
+    if (typeof aimlResponse === 'string') {
+      return { text: aimlResponse }
     }
 
     // If there's an error, return it with proper formatting
-    if (geminiResponse.error) {
-      console.error("Error from Gemini function calling:", geminiResponse.error)
+    if (aimlResponse.error) {
+      console.error("Error from AIML function calling:", aimlResponse.error)
       // Return a user-friendly error message but don't break the conversation
       return { 
-        text: `I encountered an issue processing your request: ${geminiResponse.error.substring(0, 100)}... Let me try a different approach.`,
-        error: geminiResponse.error
+        text: `I encountered an issue processing your request: ${aimlResponse.error.substring(0, 100)}... Let me try a different approach.`,
+        error: aimlResponse.error
       }
     }
 
     // If there are function calls, process them
-    if (geminiResponse.functionCalls && Array.isArray(geminiResponse.functionCalls)) {
-      console.log("Parsed function calls from Gemini:", geminiResponse.functionCalls)
+    if (aimlResponse.functionCalls && Array.isArray(aimlResponse.functionCalls)) {
+      console.log("Parsed function calls from AIML API:", aimlResponse.functionCalls)
 
       // Format the function calls to match the expected structure
-      const formattedFunctionCalls: FunctionCall[] = geminiResponse.functionCalls.map((call, index) => {
+      const formattedFunctionCalls: FunctionCall[] = aimlResponse.functionCalls.map((call, index) => {
         // Ensure we have valid arguments even if they're not provided
         const args = call.arguments || {}
         
@@ -300,7 +300,7 @@ export const callFlockWeb3 = async (
       }).filter(call => call.name && typeof call.name === 'string') // Ensure only valid calls get through
 
       // Also include any text response that came with the function calls
-      const textResponse = geminiResponse.text || 
+      const textResponse = aimlResponse.text || 
         "I'll help you with that by performing some actions."
 
       if (formattedFunctionCalls.length > 0) {
@@ -315,8 +315,8 @@ export const callFlockWeb3 = async (
     }
 
     // If there's text content, return it
-    if (geminiResponse.text) {
-      return { text: geminiResponse.text }
+    if (aimlResponse.text) {
+      return { text: aimlResponse.text }
     }
 
     // Fallback response to ensure the conversation continues

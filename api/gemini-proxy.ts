@@ -1,4 +1,4 @@
-// This is a Vercel serverless function that acts as a proxy for Gemini API
+// This is a Vercel serverless function that acts as a proxy for AIML API
 // to avoid CORS issues with browser-based requests
 export const config = {
   runtime: 'edge',
@@ -12,7 +12,7 @@ export default async function handler(req: Request) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Gemini-API-Key',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-AIMLAPI-Key',
         'Access-Control-Max-Age': '86400',
       },
     });
@@ -33,12 +33,12 @@ export default async function handler(req: Request) {
     }
 
     // Prefer header; fallback to server env for production deploys
-    const apiToken = req.headers.get('X-Gemini-API-Key') || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const apiToken = req.headers.get('X-AIMLAPI-Key') || process.env.AIMLAPI_KEY || process.env.VITE_AIMLAPI_KEY || '';
     if (!apiToken) {
-      console.error('Missing Gemini API key in headers');
+      console.error('Missing AIML API key in headers');
       return new Response(JSON.stringify({
-        error: 'Gemini API token is required',
-        details: 'The X-Gemini-API-Key header is missing or empty'
+        error: 'AIML API token is required',
+        details: 'The X-AIMLAPI-Key header is missing or empty'
       }), {
         status: 401,
         headers: {
@@ -50,7 +50,7 @@ export default async function handler(req: Request) {
 
     // Log that we received a key (mask most of it for security)
     const maskedKey = apiToken.substring(0, 8) + '...' + apiToken.substring(apiToken.length - 4);
-    console.log(`Received API key in gemini-proxy: ${maskedKey}`);
+    console.log(`Received API key in aiml-proxy: ${maskedKey}`);
 
     // Parse the request body
     let requestData;
@@ -81,38 +81,30 @@ export default async function handler(req: Request) {
       });
     }
 
-    console.log('Alternative proxy handling request for Gemini API');
+    console.log('Alternative proxy handling request for AIML API');
 
-    // Extract parameters from the request
+    // Extract parameters from the request (already in OpenAI format)
     const {
-      model = 'gemini-3-flash-preview',
+      model = 'gpt-4o',
       messages,
       temperature = 0.7,
       max_tokens = 2000
     } = requestData;
 
-    // Convert OpenAI format messages to Gemini format
-    const contents = messages.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : msg.role,
-      parts: [{ text: msg.content }]
-    }));
+    // AIML API uses OpenAI-compatible format, so no conversion needed
+    console.log(`Making request to AIML API with model: ${model}`);
 
-    // Using direct fetch instead of OpenAI SDK for Edge compatibility
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-    console.log(`Making request to Gemini endpoint: ${geminiEndpoint}`);
-
-    const response = await fetch(geminiEndpoint, {
+    const response = await fetch('https://api.aimlapi.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiToken}`
       },
       body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature,
-          maxOutputTokens: max_tokens,
-        }
+        model,
+        messages,
+        temperature,
+        max_tokens
       })
     });
 
@@ -121,13 +113,13 @@ export default async function handler(req: Request) {
       let errorText;
       try {
         errorText = await response.text();
-        console.error(`Gemini API error (${response.status}):`, errorText);
+        console.error(`AIML API error (${response.status}):`, errorText);
       } catch (error) {
         errorText = 'Could not read error response';
       }
       
       return new Response(JSON.stringify({
-        error: `Gemini API returned ${response.status}`,
+        error: `AIML API returned ${response.status}`,
         details: errorText
       }), {
         status: response.status,
@@ -139,13 +131,13 @@ export default async function handler(req: Request) {
     }
 
     // Get the response data
-    let rawResponse;
+    let responseData;
     try {
-      rawResponse = await response.json();
-      console.log('Received response from Gemini API (direct fetch)');
+      responseData = await response.json();
+      console.log('Received response from AIML API');
     } catch (error) {
       return new Response(JSON.stringify({
-        error: 'Failed to parse Gemini API response',
+        error: 'Failed to parse AIML API response',
         details: error instanceof Error ? error.message : 'Unknown error'
       }), {
         status: 500,
@@ -156,47 +148,19 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Transform Gemini response to OpenAI format
-    let content = '';
-    try {
-      content = rawResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'No response text';
-    } catch (error) {
-      console.error('Failed to extract content from response:', error);
-      content = 'Error extracting content from response';
-    }
-
-    const formattedResponse = {
-      id: 'gemini-' + Date.now(),
-      object: 'chat.completion',
-      created: Date.now(),
-      model: model,
-      choices: [{
-        index: 0,
-        message: {
-          role: 'assistant',
-          content: content
-        },
-        finish_reason: 'stop'
-      }],
-      usage: {
-        prompt_tokens: -1,
-        completion_tokens: -1,
-        total_tokens: -1
-      }
-    };
-
-    // Return the formatted response
-    return new Response(JSON.stringify(formattedResponse), {
+    // AIML API already returns OpenAI-compatible format, so just pass it through
+    // Return the response
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*', 
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Gemini-API-Key'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-AIMLAPI-Key'
       }
     });
   } catch (error) {
-    console.error('Error in gemini-proxy:', error);
+    console.error('Error in aiml-proxy:', error);
     
     return new Response(JSON.stringify({
       error: 'Proxy server error',
