@@ -38,6 +38,9 @@
 
 ### 💬 Core Functionality
 
+* **Wallet Connection (Thirdweb SDK)**: AxiosChat uses Thirdweb SDK to handle secure and seamless Web3 wallet connections, enabling users to interact with blockchain features easily.  
+Learn more: https://thirdweb.com
+
 * **Conversational Blockchain Operations**: Execute transactions (token swaps, transfers) and query data (balances, prices) using simple English.
 * **Intelligent Function Calling**: Sophisticated AI determines when to call specific blockchain functions based on your requests.
 * **Educational Context**: Learn as you go! AxiosChat provides explanations for blockchain concepts and transaction details.
